@@ -9,7 +9,6 @@ struct BrowserTrack: Equatable {
     var playing: Bool
     var artworkURL: String
     var service: String
-    /// True when play state came from the page itself rather than being inferred from audio output.
     var preciseState = true
     var position: Double = 0
     var duration: Double = 0
@@ -31,9 +30,6 @@ enum BrowserAction {
     }
 }
 
-/// Finds media playing in browser tabs (YouTube, YouTube Music, SoundCloud, Spotify Web) via AppleScript.
-/// Metadata comes from `navigator.mediaSession`, which needs "Allow JavaScript from Apple Events" in the
-/// browser; without it we fall back to the tab title and assume the tab is playing.
 enum BrowserMedia {
     private struct Browser { let name: String; let bundleID: String; let safari: Bool }
 
@@ -72,8 +68,6 @@ enum BrowserMedia {
         return error == nil ? result?.stringValue : nil
     }
 
-    /// True when any audio process whose bundle ID starts with `bundlePrefix` (the browser or its helpers) is
-    /// currently rendering output. Public CoreAudio API (macOS 14.2+), no permission needed.
     nonisolated static func isOutputtingAudio(bundlePrefix: String) -> Bool {
         var listAddr = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyProcessObjectList,
                                                   mScope: kAudioObjectPropertyScopeGlobal,
@@ -103,7 +97,6 @@ enum BrowserMedia {
         return false
     }
 
-    /// Returns the best track across the given running browsers (playing tabs first).
     nonisolated static func scan(browserNames: [String]) -> BrowserTrack? {
         var found: [BrowserTrack] = []
         for browser in browsers where browserNames.contains(browser.name) {
@@ -128,7 +121,6 @@ enum BrowserMedia {
             end tell
             """
             guard let output = run(source) else { continue }
-            // Used when JavaScript is blocked: is any process of this browser currently outputting sound?
             let audioPlaying = isOutputtingAudio(bundlePrefix: browser.bundleID)
             for line in output.components(separatedBy: "\n") {
                 let parts = line.components(separatedBy: "|||")
@@ -193,7 +185,6 @@ enum BrowserMedia {
         for suffix in [" - YouTube Music", " - YouTube", " | SoundCloud", " | Spotify", " • Spotify"] where t.hasSuffix(suffix) {
             t = String(t.dropLast(suffix.count))
         }
-        // Drop a leading notification counter such as "(3) ".
         if t.hasPrefix("("), let close = t.firstIndex(of: ")"), t[t.index(after: t.startIndex)..<close].allSatisfy(\.isNumber) {
             t = String(t[t.index(after: close)...]).trimmingCharacters(in: .whitespaces)
         }

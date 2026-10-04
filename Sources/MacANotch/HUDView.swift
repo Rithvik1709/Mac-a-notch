@@ -14,7 +14,6 @@ enum HUDLayout {
     }
 }
 
-/// Content of the HUD pill. The centre is left empty so it sits behind the physical notch.
 struct HUDView: View {
     let hud: HUDEvent
     let notch: CGSize
@@ -41,7 +40,6 @@ struct HUDView: View {
         .foregroundStyle(.white)
     }
 
-    // Icon left of the notch, short text right of it.
     private func symbolRow(icon: String, text: String, tint: Color = .white) -> some View {
         HStack(spacing: 0) {
             Image(systemName: icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(tint)
@@ -54,7 +52,6 @@ struct HUDView: View {
         .frame(height: notch.height)
     }
 
-    // Notch-height row (empty, behind the notch) plus a detail row below it.
     private func tallRow(icon: String, title: String, subtitle: String, tint: Color = .white) -> some View {
         VStack(spacing: 0) {
             Spacer().frame(height: notch.height)

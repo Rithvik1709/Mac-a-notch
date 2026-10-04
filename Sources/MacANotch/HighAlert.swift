@@ -1,12 +1,10 @@
 import Foundation
 import IOKit.pwr_mgt
 
-/// "High Alert": keeps the display and system awake via a power assertion.
 @MainActor
 final class HighAlertModel: ObservableObject {
     @Published private(set) var active = false
     @Published private(set) var endsAt: Date?
-    /// 0 means indefinitely.
     @Published var minutes = 0
 
     var onChange: ((Bool) -> Void)?

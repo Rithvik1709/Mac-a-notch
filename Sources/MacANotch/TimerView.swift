@@ -42,7 +42,6 @@ struct TimerView: View {
     }
 }
 
-/// Collapsed-notch countdown: phase icon left of the notch, time right of it.
 struct PomodoroPillView: View {
     @ObservedObject var pomodoro: PomodoroModel
     let notch: CGSize

@@ -11,7 +11,6 @@ final class PomodoroModel: ObservableObject {
     @Published var phase: Phase = .focus
     @Published var remaining: Int
     @Published private(set) var running = false
-    /// True from the first Start until the phase finishes or is reset (drives the collapsed-notch pill).
     @Published private(set) var started = false
     @Published var focusMinutes: Int { didSet { persist(); syncIdle() } }
     @Published var breakMinutes: Int { didSet { persist(); syncIdle() } }
@@ -77,7 +76,6 @@ final class PomodoroModel: ObservableObject {
         remaining = seconds(for: .focus)
     }
 
-    /// Jump to the other phase without waiting for the countdown.
     func skip() {
         timer?.invalidate()
         running = false

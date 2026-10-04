@@ -43,7 +43,6 @@ final class ClipboardManager: ObservableObject {
         lastChange = pasteboard.changeCount
         guard Pref.bool(Pref.clipboard) else { return }
 
-        // Respect password managers and apps that mark data as concealed/transient.
         let types = pasteboard.types?.map(\.rawValue) ?? []
         if types.contains("org.nspasteboard.ConcealedType") || types.contains("org.nspasteboard.TransientType") { return }
         let front = NSWorkspace.shared.frontmostApplication
@@ -119,7 +118,6 @@ final class ClipboardManager: ObservableObject {
         save()
     }
 
-    /// Extracts text from an image clip with Vision and copies it to the clipboard.
     func ocr(_ item: ClipItem, completion: @escaping (Bool) -> Void) {
         guard let cg = image(for: item)?.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             completion(false); return

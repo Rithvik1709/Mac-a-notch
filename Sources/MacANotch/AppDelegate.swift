@@ -66,7 +66,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // MARK: Panel
 
     private func setUpPanel() {
         let pad = NotchState.panelPadding
@@ -99,7 +98,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                               width: panel.frame.width, height: panel.frame.height), display: true)
     }
 
-    // MARK: Status item
 
     private func setUpStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -129,7 +127,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
-    // MARK: Expand / collapse
 
     private func setExpanded(_ expanded: Bool) {
         guard state.expanded != expanded else { return }
@@ -138,7 +135,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let first = NotchTab.allCases.first(where: { Pref.bool($0.prefKey) }), !Pref.bool(state.tab.prefKey) {
                 state.tab = first
             }
-            // Like an iPhone live activity: opening the notch while music plays lands on the player.
             if Pref.bool(Pref.media), media.hasTrack, media.isPlaying, !draggingContent { state.tab = .media }
             if Pref.bool(Pref.hapticFeedback) {
                 NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
@@ -153,7 +149,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         state.expanded = expanded
     }
 
-    // MARK: Mouse tracking
 
     private func setUpMonitors() {
         let mask: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .leftMouseDown, .leftMouseUp]
@@ -205,7 +200,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let notch = state.notchSize
 
         if state.expanded {
-            // Never collapse mid-drag (e.g. dragging a file out of the shelf).
             guard NSEvent.pressedMouseButtons & 1 == 0 else { return }
             let w = NotchState.expandedSize.width, h = NotchState.expandedSize.height
             let inside = loc.x >= f.midX - w / 2 - 14 && loc.x <= f.midX + w / 2 + 14

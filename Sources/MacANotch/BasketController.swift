@@ -1,7 +1,5 @@
 import AppKit
 import SwiftUI
-
-/// Floating drop zone summoned by jiggling the cursor while dragging.
 @MainActor
 final class BasketController {
     private let panel: NSPanel
@@ -31,7 +29,6 @@ final class BasketController {
         NSAnimationContext.runAnimationGroup { $0.duration = 0.15; panel.animator().alphaValue = 1 }
     }
 
-    /// Called on mouse-up: leave time for the drop to land, then hide.
     func scheduleHide() {
         guard panel.isVisible else { return }
         hideWork?.cancel()

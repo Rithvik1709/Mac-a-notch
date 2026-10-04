@@ -13,6 +13,8 @@ struct NotchView: View {
     @ObservedObject var shortcuts: ShortcutsModel
     @ObservedObject var highAlert: HighAlertModel
 
+    @Namespace private var tabNamespace
+
     @AppStorage(Pref.shelf) private var shelfOn = true
     @AppStorage(Pref.clipboard) private var clipboardOn = true
     @AppStorage(Pref.media) private var mediaOn = true
@@ -45,7 +47,6 @@ struct NotchView: View {
                 .frame(width: width, height: height)
                 .shadow(color: .black.opacity(state.expanded ? 0.45 : 0), radius: 14, y: 6)
                 .overlay(alignment: .bottom) {
-                    // Small dot hints that the shelf holds files while collapsed.
                     if !state.expanded && !shelf.items.isEmpty && liveSize == nil {
                         Circle().fill(.blue).frame(width: 5, height: 5).offset(y: -3)
                     }
@@ -102,6 +103,7 @@ struct NotchView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .animation(nil, value: state.tab)
         }
         .padding(.horizontal, 36)
         .padding(.bottom, 20)
@@ -111,14 +113,30 @@ struct NotchView: View {
     private var tabBar: some View {
         HStack(spacing: 6) {
             ForEach(tabs) { tab in
-                Button { state.tab = tab } label: {
+                Button {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                        state.tab = tab
+                    }
+                } label: {
                     HStack(spacing: 5) {
                         Image(systemName: tab.icon)
-                        if state.tab == tab { Text(tab.title) }
+                        if state.tab == tab {
+                            Text(tab.title)
+                                .lineLimit(1)
+                                .fixedSize()
+                                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                        }
                     }
                     .font(.system(size: 11, weight: .medium))
                     .padding(.horizontal, 10).padding(.vertical, 4)
-                        .background(state.tab == tab ? Color.white.opacity(0.18) : .clear, in: Capsule())
+                    .background {
+                        if state.tab == tab {
+                            Capsule()
+                                .fill(Color.white.opacity(0.18))
+                                .matchedGeometryEffect(id: "activeTabPill", in: tabNamespace)
+                        }
+                    }
+                    .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(state.tab == tab ? .white : .white.opacity(0.55))
@@ -129,6 +147,7 @@ struct NotchView: View {
             }
             .buttonStyle(.plain).foregroundStyle(.white.opacity(0.55))
         }
+        .animation(.spring(response: 0.32, dampingFraction: 0.8), value: state.tab)
     }
 }
 
@@ -279,6 +298,46 @@ struct ClipboardView: View {
     }
 }
 
+struct ArtworkView: View {
+    let image: NSImage?
+    let size: CGFloat
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .fill(Color.white.opacity(0.08))
+
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                    .id(image)
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity
+                                .combined(with: .scale(scale: 0.90))
+                                .animation(.spring(response: 0.42, dampingFraction: 0.8)),
+                            removal: .opacity
+                                .combined(with: .scale(scale: 1.06))
+                                .animation(.spring(response: 0.38, dampingFraction: 0.85))
+                        )
+                    )
+            } else {
+                Image(systemName: "music.note")
+                    .font(.system(size: size * 0.3))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .transition(.opacity.animation(.easeInOut(duration: 0.2)))
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .animation(.spring(response: 0.42, dampingFraction: 0.8), value: image)
+    }
+}
+
 struct MediaView: View {
     @ObservedObject var media: MediaController
 
@@ -292,11 +351,7 @@ struct MediaView: View {
             .foregroundStyle(.white.opacity(0.5)).frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             HStack(spacing: 14) {
-                Group {
-                    if let art = media.artwork { Image(nsImage: art).resizable().scaledToFill() }
-                    else { Image(systemName: "music.note").font(.system(size: 28)).foregroundStyle(.white.opacity(0.5)) }
-                }
-                .frame(width: 92, height: 92).background(.white.opacity(0.08)).clipShape(RoundedRectangle(cornerRadius: 12))
+                ArtworkView(image: media.artwork, size: 92, cornerRadius: 12)
 
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(alignment: .top) {
@@ -335,7 +390,6 @@ struct MediaView: View {
     }
 }
 
-/// Draggable progress bar with elapsed / total time.
 struct SeekBar: View {
     @ObservedObject var media: MediaController
     @State private var dragFraction: Double?
@@ -346,27 +400,30 @@ struct SeekBar: View {
     }
 
     var body: some View {
-        let fraction = dragFraction ?? (media.duration > 0 ? min(media.position / media.duration, 1) : 0)
-        HStack(spacing: 6) {
-            Text(format(fraction * media.duration)).font(.system(size: 9).monospacedDigit()).foregroundStyle(.white.opacity(0.5))
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.2))
-                    Capsule().fill(.white).frame(width: geo.size.width * fraction)
+        TimelineView(.animation(paused: !media.isPlaying && dragFraction == nil)) { context in
+            let currentPos = dragFraction.map { $0 * media.duration } ?? media.currentPosition(at: context.date)
+            let fraction = media.duration > 0 ? min(max(currentPos / media.duration, 0), 1) : 0
+            HStack(spacing: 6) {
+                Text(format(currentPos)).font(.system(size: 9).monospacedDigit()).foregroundStyle(.white.opacity(0.5))
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(.white.opacity(0.2))
+                        Capsule().fill(.white).frame(width: max(0, geo.size.width * fraction))
+                    }
+                    .frame(height: dragFraction != nil ? 6 : 4)
+                    .frame(maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0)
+                        .onChanged { dragFraction = min(max($0.location.x / geo.size.width, 0), 1) }
+                        .onEnded { value in
+                            let f = min(max(value.location.x / geo.size.width, 0), 1)
+                            media.seek(to: f * media.duration)
+                            dragFraction = nil
+                        })
                 }
-                .frame(height: dragFraction != nil ? 6 : 4)
-                .frame(maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .gesture(DragGesture(minimumDistance: 0)
-                    .onChanged { dragFraction = min(max($0.location.x / geo.size.width, 0), 1) }
-                    .onEnded { value in
-                        let f = min(max(value.location.x / geo.size.width, 0), 1)
-                        media.seek(to: f * media.duration)
-                        dragFraction = nil
-                    })
+                .frame(height: 14)
+                Text(format(media.duration)).font(.system(size: 9).monospacedDigit()).foregroundStyle(.white.opacity(0.5))
             }
-            .frame(height: 14)
-            Text(format(media.duration)).font(.system(size: 9).monospacedDigit()).foregroundStyle(.white.opacity(0.5))
         }
         .opacity(media.duration > 0 ? 1 : 0.35)
         .allowsHitTesting(media.duration > 0)
