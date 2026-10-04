@@ -21,24 +21,20 @@ struct HUDEvent: Equatable {
     let kind: HUDKind
 }
 
-/// Watches system volume, display brightness and Bluetooth audio connections and publishes HUD events.
 @MainActor
 final class HUDMonitor: NSObject {
     private weak var state: NotchState?
     private var hideWork: DispatchWorkItem?
 
-    // Volume
     private var deviceID = AudioObjectID(kAudioObjectUnknown)
     private var lastVolume: Float = -1
     private var lastMuted = false
 
-    // Brightness
     private var lastBrightness: Float = -1
     private var brightnessTimer: Timer?
     private typealias GetBrightness = @convention(c) (UInt32, UnsafeMutablePointer<Float>) -> Int32
     private var getBrightness: GetBrightness?
 
-    // Power / lock / caps lock
     private var lastOnAC: Bool?
     private var lastPercent = 100
     private var lastCaps = false
@@ -55,7 +51,6 @@ final class HUDMonitor: NSObject {
         IOBluetoothDevice.register(forConnectNotifications: self, selector: #selector(deviceConnected(_:device:)))
     }
 
-    // MARK: Showing
 
     private func show(_ kind: HUDKind, duration: TimeInterval) {
         guard let state, !state.expanded else { return }
@@ -70,7 +65,6 @@ final class HUDMonitor: NSObject {
         show(.message(icon: icon, title: title, subtitle: subtitle), duration: duration)
     }
 
-    // MARK: Volume (CoreAudio listeners — no permissions needed)
 
     private func address(_ selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {
         AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioDevicePropertyScopeOutput,
@@ -96,7 +90,6 @@ final class HUDMonitor: NSObject {
         guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &id) == noErr,
               id != kAudioObjectUnknown else { return }
         deviceID = id
-        // Record current values so switching output devices doesn't pop a HUD.
         lastVolume = readVolume() ?? -1
         lastMuted = readMuted()
         for selector in [kAudioHardwareServiceDeviceProperty_VirtualMainVolume, kAudioDevicePropertyMute] {
@@ -132,7 +125,6 @@ final class HUDMonitor: NSObject {
         show(.volume(vol, muted: muted), duration: 1.6)
     }
 
-    // MARK: Brightness (private DisplayServices, polled)
 
     private func setUpBrightness() {
         if let handle = dlopen("/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices", RTLD_LAZY),
@@ -163,11 +155,9 @@ final class HUDMonitor: NSObject {
         guard Pref.bool(Pref.brightnessHUD), let value = readBrightness() else { return }
         defer { lastBrightness = value }
         guard lastBrightness >= 0 else { return }
-        // Keys move in ~6% steps; ignore the slow drift of auto-brightness.
         if abs(value - lastBrightness) >= 0.03 { show(.brightness(value), duration: 1.6) }
     }
 
-    // MARK: Battery (IOKit power-source notifications, no permission needed)
 
     private func powerInfo() -> (percent: Int, onAC: Bool)? {
         guard let blob = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
@@ -179,7 +169,7 @@ final class HUDMonitor: NSObject {
     }
 
     private func setUpPower() {
-        guard let initial = powerInfo() else { return }   // desktop Macs have no battery
+        guard let initial = powerInfo() else { return }
         lastOnAC = initial.onAC
         lastPercent = initial.percent
         let context = Unmanaged.passUnretained(self).toOpaque()
@@ -204,7 +194,6 @@ final class HUDMonitor: NSObject {
         }
     }
 
-    // MARK: Lock / unlock
 
     private func setUpLock() {
         let center = DistributedNotificationCenter.default()
@@ -219,14 +208,12 @@ final class HUDMonitor: NSObject {
     private func lockChanged(unlocked: Bool) {
         guard Pref.bool(Pref.lockHUD) else { return }
         guard unlocked else { show(.lock(unlocked: false), duration: 1.5); return }
-        // Show the closed padlock first, then swap to open so the symbol animates.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
             self?.show(.lock(unlocked: false), duration: 2)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { self?.show(.lock(unlocked: true), duration: 1.6) }
         }
     }
 
-    // MARK: Caps lock (polled; flagsState needs no Accessibility permission)
 
     private func setUpCapsLock() {
         lastCaps = CGEventSource.flagsState(.combinedSessionState).contains(.maskAlphaShift)
@@ -241,7 +228,6 @@ final class HUDMonitor: NSObject {
         }
     }
 
-    // MARK: AirPods / Bluetooth audio
 
     @objc nonisolated func deviceConnected(_ notification: IOBluetoothUserNotification, device: IOBluetoothDevice) {
         let name = device.name ?? "Bluetooth device"
@@ -254,7 +240,6 @@ final class HUDMonitor: NSObject {
     private func bluetoothAudioConnected(_ name: String) {
         guard Pref.bool(Pref.airpodsHUD) else { return }
         show(.airpods(name: name, battery: nil), duration: 3.5)
-        // Battery isn't exposed by a public API; system_profiler reports it once the link settles.
         DispatchQueue.global(qos: .utility).async {
             Thread.sleep(forTimeInterval: 2)
             let battery = Self.batteryText(for: name)

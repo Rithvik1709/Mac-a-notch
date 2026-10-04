@@ -1,7 +1,6 @@
 import AVFoundation
 import SwiftUI
 
-// MARK: Calendar
 
 struct CalendarView: View {
     @ObservedObject var calendar: CalendarModel
@@ -79,7 +78,6 @@ private struct EventRow: View {
     }
 }
 
-// MARK: Claude Code status
 
 struct ClaudeView: View {
     @ObservedObject var agents: AgentMonitor
@@ -150,7 +148,6 @@ private struct SessionRow: View {
     }
 }
 
-// MARK: System monitor
 
 struct SystemView: View {
     @ObservedObject var system: SystemMonitor
@@ -205,7 +202,6 @@ private struct Gauge: View {
     }
 }
 
-// MARK: Shortcuts
 
 struct ShortcutsView: View {
     @ObservedObject var shortcuts: ShortcutsModel
@@ -246,7 +242,6 @@ struct ShortcutsView: View {
     }
 }
 
-// MARK: Camera mirror
 
 final class CameraController: ObservableObject {
     enum Status { case idle, running, denied, unavailable }
@@ -282,8 +277,6 @@ final class CameraController: ObservableObject {
             DispatchQueue.main.async { self.status = .running }
         }
     }
-
-    /// Stops the session so the camera light turns off as soon as the notch closes.
     func stop() {
         queue.async { if self.session.isRunning { self.session.stopRunning() } }
         status = .idle
@@ -298,7 +291,7 @@ struct CameraPreview: NSViewRepresentable {
         view.wantsLayer = true
         let layer = AVCaptureVideoPreviewLayer(session: session)
         layer.videoGravity = .resizeAspectFill
-        layer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))   // mirror like a real mirror
+        layer.setAffineTransform(CGAffineTransform(scaleX: -1, y: 1))
         view.layer = layer
         return view
     }

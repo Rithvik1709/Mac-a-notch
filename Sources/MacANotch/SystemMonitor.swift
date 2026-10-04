@@ -2,7 +2,6 @@ import Foundation
 import IOKit
 import Darwin
 
-/// CPU, GPU, memory, disk and network readings. Sampling only runs while the System tab is visible.
 @MainActor
 final class SystemMonitor: ObservableObject {
     @Published private(set) var cpu: Double = 0
@@ -105,7 +104,6 @@ final class SystemMonitor: ObservableObject {
         lastNet = (down, up, now)
     }
 
-    /// GPU "Device Utilization %" from the IOAccelerator registry entry; nil if the machine doesn't report it.
     private static func gpuUtilization() -> Double? {
         var iterator: io_iterator_t = 0
         guard IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOAccelerator"), &iterator) == KERN_SUCCESS else { return nil }

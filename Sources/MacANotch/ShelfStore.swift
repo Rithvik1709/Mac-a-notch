@@ -12,7 +12,6 @@ struct ShelfItem: Identifiable, Equatable {
 @MainActor
 final class ShelfStore: ObservableObject {
     @Published var items: [ShelfItem] = []
-    /// Short status line shown in the shelf ("Zipped", "Converted to PNG"…).
     @Published var message: String?
 
     func add(_ urls: [URL]) {
@@ -24,7 +23,6 @@ final class ShelfStore: ObservableObject {
     func remove(_ item: ShelfItem) { items.removeAll { $0 == item } }
     func clear() { items.removeAll() }
 
-    /// Accepts file drops from Finder and other apps.
     @discardableResult
     func handleDrop(_ providers: [NSItemProvider]) -> Bool {
         var accepted = false
@@ -39,7 +37,6 @@ final class ShelfStore: ObservableObject {
         return accepted
     }
 
-    // MARK: Actions
 
     private func flash(_ text: String) {
         message = text
@@ -58,7 +55,6 @@ final class ShelfStore: ObservableObject {
         UTType(filenameExtension: item.url.pathExtension)?.conforms(to: .image) ?? false
     }
 
-    /// Zips the given items into one archive and puts the result on the shelf.
     func zip(_ targets: [ShelfItem]) {
         guard !targets.isEmpty else { return }
         let urls = targets.map(\.url)
@@ -86,7 +82,6 @@ final class ShelfStore: ObservableObject {
         }
     }
 
-    /// Converts an image (HEIC, PNG, JPEG, TIFF…) to PNG or JPEG using ImageIO.
     func convert(_ item: ShelfItem, to type: UTType) {
         flash("Converting…")
         let url = item.url

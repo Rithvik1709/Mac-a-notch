@@ -1,6 +1,5 @@
 import Foundation
 
-/// Lists and runs the user's Apple Shortcuts through the `shortcuts` command-line tool.
 @MainActor
 final class ShortcutsModel: ObservableObject {
     @Published private(set) var names: [String] = []

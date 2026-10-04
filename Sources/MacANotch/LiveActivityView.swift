@@ -8,7 +8,6 @@ enum LiveActivityLayout {
     }
 }
 
-/// Collapsed-notch "now playing": artwork + equalizer on the left, scrolling song title on the right.
 struct LiveActivityView: View {
     @ObservedObject var media: MediaController
     let notch: CGSize
@@ -18,13 +17,7 @@ struct LiveActivityView: View {
     var body: some View {
         HStack(spacing: 0) {
             HStack(spacing: 7) {
-                Group {
-                    if let art = media.artwork { Image(nsImage: art).resizable().scaledToFill() }
-                    else { Image(systemName: "music.note").font(.system(size: 11)).foregroundStyle(.white.opacity(0.7)) }
-                }
-                .frame(width: 22, height: 22)
-                .background(.white.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 5))
+                ArtworkView(image: media.artwork, size: 22, cornerRadius: 5)
                 EqualizerBars(active: media.isPlaying)
             }
             .padding(.leading, 12)
@@ -59,7 +52,6 @@ struct EqualizerBars: View {
     }
 }
 
-/// Single-line text that scrolls horizontally when it doesn't fit.
 struct MarqueeText: View {
     let text: String
     let width: CGFloat

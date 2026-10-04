@@ -64,12 +64,10 @@ final class NotchState: ObservableObject {
 }
 
 enum NotchGeometry {
-    /// Screen that has the hardware notch, falling back to the main screen.
     static func targetScreen() -> NSScreen? {
         NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main ?? NSScreen.screens.first
     }
 
-    /// Real notch size, or a Dynamic-Island style pill on Macs without one.
     static func notchSize(for screen: NSScreen) -> CGSize {
         if !Pref.bool(Pref.islandMode), screen.safeAreaInsets.top > 0,
            let left = screen.auxiliaryTopLeftArea, let right = screen.auxiliaryTopRightArea {
@@ -107,8 +105,6 @@ struct NotchShape: Shape {
 }
 
 extension AnyTransition {
-    /// Fade in after the shape has started growing; fade out immediately so content never
-    /// lingers on screen after the black shape has already shrunk away.
     static var notchContent: AnyTransition {
         .asymmetric(insertion: .opacity.animation(.easeInOut(duration: 0.18).delay(0.1)),
                     removal: .opacity.animation(.easeOut(duration: 0.06)))

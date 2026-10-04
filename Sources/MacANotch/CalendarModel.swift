@@ -11,7 +11,6 @@ struct CalendarEvent: Identifiable, Equatable {
     let joinURL: URL?
 }
 
-/// Upcoming events from the system calendar (EventKit), with meeting-link detection and a 5-minute heads-up.
 @MainActor
 final class CalendarModel: ObservableObject {
     enum Access { case unknown, granted, denied }

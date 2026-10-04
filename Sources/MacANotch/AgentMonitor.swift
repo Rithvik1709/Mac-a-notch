@@ -9,8 +9,6 @@ struct AgentSession: Identifiable, Equatable {
     let updated: Date
 }
 
-/// Shows Claude Code sessions. Claude Code hooks run `~/.macanotch/claude-hook.sh <state>`, which writes one
-/// JSON file per session into `~/.macanotch/agents`; this class watches that folder.
 @MainActor
 final class AgentMonitor: ObservableObject {
     @Published private(set) var sessions: [AgentSession] = []
@@ -51,7 +49,6 @@ final class AgentMonitor: ObservableObject {
     exit 0
     """
 
-    /// Hook configuration to merge into ~/.claude/settings.json.
     static var hookConfig: String {
         let cmd = scriptURL.path
         func entry(_ state: String) -> String {
@@ -108,7 +105,6 @@ final class AgentMonitor: ObservableObject {
         if found != sessions { sessions = found }
 
         for s in found where lastStates[s.id] != s.state {
-            // Alert only on real transitions into "done" or "attention", not on the first scan after launch.
             if !firstScan, s.state != .working { onTransition?(s) }
             lastStates[s.id] = s.state
         }
